@@ -1,0 +1,38 @@
+import paho.mqtt.client as mqtt
+import time
+
+# Thông tin broker
+broker = "192.168.1.100"   # 📝 Đổi IP thành của bạn
+port = 1883
+topic = "rpi/test/topic"
+
+# Hàm callback khi kết nối thành công
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("✅ Kết nối MQTT thành công.")
+    else:
+        print("❌ Kết nối thất bại, mã lỗi:", rc)
+
+# Tạo MQTT client
+client = mqtt.Client()
+
+# Gán callback
+client.on_connect = on_connect
+
+# Kết nối đến broker
+client.connect(broker, port, 60)
+
+# Vòng lặp xử lý nền (bắt buộc nếu dùng callback)
+client.loop_start()
+
+try:
+    while True:
+        payload = "Hello from Raspberry Pi 5!"
+        client.publish(topic, payload)
+        print(f"📤 Đã gửi: {payload}")
+        time.sleep(5)  # Gửi mỗi 5 giây
+except KeyboardInterrupt:
+    print("🛑 Dừng bởi người dùng.")
+finally:
+    client.loop_stop()
+    client.disconnect()
