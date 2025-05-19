@@ -1,0 +1,47 @@
+import time
+import smbus
+
+# Địa chỉ I2C của ADS1115
+ADS_ADDR = 0x48
+bus = smbus.SMBus(1)
+
+# Thanh ghi ADS1115
+ADS1115_REG_CONVERSION = 0x00
+ADS1115_REG_CONFIG = 0x01
+
+# Cấu hình: đơn giản để đọc kênh 0 (AIN0)
+# PGA = ±4.096V, tốc độ 128SPS, chế độ single-shot
+CONFIG_CHANNEL_0 = 0xC183  # OS=1, MUX=100 (AIN0-GND), PGA=±4.096V, MODE=single-shot
+
+def read_adc_channel0():
+    try:
+        # Gửi cấu hình để bắt đầu chuyển đổi
+        config_hi = (CONFIG_CHANNEL_0 >> 8) & 0xFF
+        config_lo = CONFIG_CHANNEL_0 & 0xFF
+        bus.write_i2c_block_data(ADS_ADDR, ADS1115_REG_CONFIG, [config_hi, config_lo])
+        time.sleep(0.01)  # Chờ chuyển đổi
+
+        # Đọc dữ liệu ADC (2 byte)
+        data = bus.read_i2c_block_data(ADS_ADDR, ADS1115_REG_CONVERSION, 2)
+        raw = (data[0] << 8) | data[1]
+
+        # Xử lý giá trị signed
+        if raw > 32767:
+            raw -= 65536
+
+        # Chuyển đổi sang điện áp
+        voltage = raw * 4.096 / 32768.0  # ±4.096V full scale
+        return raw, round(voltage, 4)
+    except Exception as e:
+        print("❌ Error reading ADS1115:", e)
+        return None, None
+
+# Chạy thử: đọc liên tục mỗi 0.5s
+if __name__ == "__main__":
+    while True:
+        raw_val, volt = read_adc_channel0()
+        if raw_val is not None:
+            print(f"🔊 ADC Raw: {raw_val} | Voltage: {volt} V")
+        else:
+            print("⚠️ Không đọc được dữ liệu từ ADS1115.")
+        time.sleep(0.5)
