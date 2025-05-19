@@ -1,0 +1,39 @@
+import time
+import smbus
+
+# Địa chỉ I2C của cảm biến SHT30
+SHT30_ADDR = 0x44
+
+# Khởi tạo I2C bus
+bus = smbus.SMBus(1)
+
+def read_sht30():
+    try:
+        # Gửi lệnh đo tới SHT30 (chế độ high repeatability, clock stretching disabled)
+        bus.write_i2c_block_data(SHT30_ADDR, 0x2C, [0x06])
+        time.sleep(0.5)  # Chờ dữ liệu sẵn sàng
+
+        # Đọc 6 byte dữ liệu: Temp MSB, Temp LSB, Temp CRC, Hum MSB, Hum LSB, Hum CRC
+        data = bus.read_i2c_block_data(SHT30_ADDR, 0x00, 6)
+
+        # Chuyển đổi dữ liệu nhiệt độ và độ ẩm
+        temp_raw = data[0] << 8 | data[1]
+        hum_raw = data[3] << 8 | data[4]
+
+        temperature = -45 + (175 * (temp_raw / 65535.0))
+        humidity = 100 * (hum_raw / 65535.0)
+
+        return round(temperature, 2), round(humidity, 2)
+    except Exception as e:
+        print("❌ Error reading SHT30:", e)
+        return None, None
+
+# Chạy thử
+if __name__ == "__main__":
+    while True:
+        temp, hum = read_sht30()
+        if temp is not None:
+            print(f"🌡️ Temperature: {temp} °C | 💧 Humidity: {hum} %")
+        else:
+            print("⚠️ Không đọc được dữ liệu từ cảm biến.")
+        time.sleep(2)
