@@ -1,0 +1,29 @@
+import RPi.GPIO as GPIO
+import time
+
+# Khai báo chân GPIO được nối với OUT của cảm biến TCRT5000
+TCRT5000_PIN = 17  # Ví dụ dùng GPIO17 (PIN 11 trên Pi)
+
+# Thiết lập GPIO
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(TCRT5000_PIN, GPIO.IN)
+
+def read_tcrt5000():
+    # Đọc giá trị digital từ cảm biến
+    value = GPIO.input(TCRT5000_PIN)
+    return value
+
+# Chạy thử: in ra trạng thái mỗi 0.5s
+if __name__ == "__main__":
+    try:
+        while True:
+            state = read_tcrt5000()
+            if state == 0:
+                print("⬛ Vật cản/phản xạ đen phát hiện")  # Ví dụ gặp line đen
+            else:
+                print("⬜ Không có vật cản (phản xạ sáng)")  # Nền sáng/trắng
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        print("🛑 Dừng lại bởi người dùng.")
+    finally:
+        GPIO.cleanup()
